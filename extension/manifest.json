@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "LeetPush",
+  "version": "0.1.0",
+  "description": "A privacy-first Chrome extension that automatically pushes your accepted LeetCode solutions to GitHub.",
+  "permissions": [
+    "storage",
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "https://leetcode.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://leetcode.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "LeetPush"
+  }
+}
