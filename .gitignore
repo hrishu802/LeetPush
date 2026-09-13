@@ -142,3 +142,7 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 .DS_Store
+
+# Python cache
+__pycache__/
+*.pyc

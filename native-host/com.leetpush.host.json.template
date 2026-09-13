@@ -1,0 +1,9 @@
+{
+  "name": "com.leetpush.host",
+  "description": "LeetPush local native messaging host",
+  "path": "__HOST_PATH__",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://__EXTENSION_ID__/"
+  ]
+}

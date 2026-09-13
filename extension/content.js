@@ -8,6 +8,7 @@ let resultCheckTimer = null;
 let resultCheckCount = 0;
 let lastSubmitEventAt = 0;
 let lastSubmittedCode = "";
+let lastSubmittedLanguage = "";
 
 let previousResultSnapshot = "";
 
@@ -63,39 +64,63 @@ function extractProblemUrl() {
 }
 
 function extractProblemTitle() {
-    const selectors = [
-        'a[href*="/problems/"][class*="truncate"]',
-        'a[href*="/problems/"]',
-        'h1',
-        '[data-cy="question-title"]'
-    ];
-
-    for (const selector of selectors) {
-        const elements = document.querySelectorAll(selector);
-
-        for (const element of elements) {
-            if (!isVisible(element)) {
-                continue;
-            }
-
-            const text = getElementText(element);
-
-            if (
-                text &&
-                text.length > 1 &&
-                text.length < 300 &&
-                !/^Problem List$/i.test(text)
-            ) {
-                return text;
-            }
-        }
-    }
-
-    const title = document.title
+    const pageTitle = document.title
         .replace(/\s*-\s*LeetCode\s*$/i, "")
         .trim();
 
-    return title || "";
+    if (pageTitle) {
+        return pageTitle;
+    }
+
+    return "";
+}
+
+function extractProblemNumber() {
+    try {
+        const nextDataElement =
+            document.getElementById("__NEXT_DATA__");
+
+        if (!nextDataElement) {
+            return "";
+        }
+
+        const data = JSON.parse(
+            nextDataElement.textContent || "{}"
+        );
+
+        const queries =
+            data?.props?.pageProps?.dehydratedState?.queries;
+
+        if (!Array.isArray(queries)) {
+            return "";
+        }
+
+        for (const query of queries) {
+            const question = query?.state?.data?.question;
+
+            if (!question) {
+                continue;
+            }
+
+            const currentSlug = extractProblemSlug();
+
+            if (
+                question.titleSlug === currentSlug &&
+                question.questionFrontendId
+            ) {
+                return String(
+                    question.questionFrontendId
+                );
+            }
+        }
+    } catch (error) {
+        console.warn(
+            "[LeetPush] ⚠️ Could not extract problem number:",
+            error
+        );
+    }
+
+    return "";
 }
 
 function extractLanguage() {
@@ -120,20 +145,22 @@ function extractLanguage() {
                 continue;
             }
 
+            const normalizedText = text.trim();
+
             if (
-                /\bPython3\b/i.test(text) ||
-                /\bPython\b/i.test(text) ||
-                /\bJava\b/i.test(text) ||
-                /\bJavaScript\b/i.test(text) ||
-                /\bTypeScript\b/i.test(text) ||
-                /\bC\+\+\b/i.test(text) ||
-                /\bC#\b/i.test(text) ||
-                /\bGo\b/i.test(text) ||
-                /\bRust\b/i.test(text) ||
-                /\bKotlin\b/i.test(text) ||
-                /\bSwift\b/i.test(text)
+                /^Python3$/i.test(normalizedText) ||
+                /^Python$/i.test(normalizedText) ||
+                /^Java$/i.test(normalizedText) ||
+                /^JavaScript$/i.test(normalizedText) ||
+                /^TypeScript$/i.test(normalizedText) ||
+                /^C\+\+$/.test(normalizedText) ||
+                /^C#$/.test(normalizedText) ||
+                /^Go$/i.test(normalizedText) ||
+                /^Rust$/i.test(normalizedText) ||
+                /^Kotlin$/i.test(normalizedText) ||
+                /^Swift$/i.test(normalizedText)
             ) {
-                return text;
+                return normalizedText;
             }
         }
     }
@@ -179,9 +206,10 @@ function extractEditorCode() {
 function extractSubmissionData(status) {
     return {
         title: extractProblemTitle(),
+        number: extractProblemNumber(),
         slug: extractProblemSlug(),
         url: extractProblemUrl(),
-        language: extractLanguage(),
+        language: lastSubmittedLanguage,
         code: lastSubmittedCode,
         status: status,
         submittedAt: new Date().toISOString()
@@ -192,7 +220,12 @@ function logSubmissionData(data) {
     console.log("[LeetPush] ===============================");
     console.log("[LeetPush] 📦 SUBMISSION DATA");
     console.log("[LeetPush] ===============================");
-    console.log("[LeetPush] Problem:", data.title);
+    console.log(
+        "[LeetPush] Problem:",
+        data.number
+            ? `${data.number}. ${data.title}`
+            : data.title
+    );
     console.log("[LeetPush] Slug:", data.slug);
     console.log("[LeetPush] URL:", data.url);
     console.log("[LeetPush] Language:", data.language);
@@ -612,6 +645,11 @@ function handleDetectedSubmissionStatus(status) {
 
         logSubmissionData(submissionData);
 
+        chrome.runtime.sendMessage({
+            type: "LEETPUSH_ACCEPTED_SUBMISSION",
+            submission: submissionData
+        });
+
         return;
     }
 
@@ -687,6 +725,12 @@ function startSubmissionDetection() {
      * Capture the code being submitted NOW.
      */
     lastSubmittedCode = extractEditorCode();
+    lastSubmittedLanguage = extractLanguage();
+
+    console.log(
+        "[LeetPush] 📝 Captured submitted language:",
+        lastSubmittedLanguage
+    );
 
     if (!lastSubmittedCode.trim()) {
         console.warn(
