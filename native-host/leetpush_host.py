@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import numbers
-import numbers
 import json
 import re
 import struct
