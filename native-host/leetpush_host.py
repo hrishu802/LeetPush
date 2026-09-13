@@ -8,9 +8,44 @@ import sys
 from pathlib import Path
 
 
-REPO_DIR = Path.home() / "Developer" / "leetcode-solutions"
-SOLUTIONS_DIR = REPO_DIR / "solutions"
+CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
 
+
+def load_repo_dir():
+    if not CONFIG_PATH.is_file():
+        raise RuntimeError(
+            f"LeetPush configuration file not found: {CONFIG_PATH}"
+        )
+
+    try:
+        config = json.loads(
+            CONFIG_PATH.read_text(encoding="utf-8")
+        )
+    except json.JSONDecodeError as error:
+        raise RuntimeError(
+            f"Invalid LeetPush configuration: {error}"
+        ) from error
+
+    repo_dir = config.get("repo_dir")
+
+    if not isinstance(repo_dir, str) or not repo_dir.strip():
+        raise RuntimeError(
+            "LeetPush configuration is missing 'repo_dir'."
+        )
+
+    repo_dir = Path(repo_dir).expanduser().resolve()
+
+    if not repo_dir.is_dir():
+        raise RuntimeError(
+            f"Configured repository directory does not exist: {repo_dir}"
+        )
+
+    return repo_dir
+
+
+REPO_DIR = load_repo_dir()
+
+SOLUTIONS_DIR = REPO_DIR / "solutions"
 
 LANGUAGE_EXTENSIONS = {
     "Python": "py",

@@ -146,3 +146,6 @@ vite.config.ts.timestamp-*
 # Python cache
 __pycache__/
 *.pyc
+
+# LeetPush local configuration
+native-host/config.json
