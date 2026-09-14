@@ -645,10 +645,42 @@ function handleDetectedSubmissionStatus(status) {
 
         logSubmissionData(submissionData);
 
-        chrome.runtime.sendMessage({
-            type: "LEETPUSH_ACCEPTED_SUBMISSION",
-            submission: submissionData
-        });
+        chrome.runtime.sendMessage(
+            {
+                type: "LEETPUSH_ACCEPTED_SUBMISSION",
+                submission: submissionData
+            },
+            (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error(
+                        "[LeetPush] ❌ Could not contact background service:",
+                        chrome.runtime.lastError.message
+                    );
+                    return;
+                }
+
+                if (!response?.ok) {
+                    console.error(
+                        "[LeetPush] ❌ Native sync failed:",
+                        response?.error || "Unknown error."
+                    );
+                    return;
+                }
+
+                if (response.response?.ok === false) {
+                    console.error(
+                        "[LeetPush] ❌ Native host failed:",
+                        response.response.error || "Unknown native host error."
+                    );
+                    return;
+                }
+
+                console.log(
+                    "[LeetPush] ✅ Solution synced successfully:",
+                    response.response
+                );
+            }
+        );
 
         return;
     }
