@@ -149,3 +149,6 @@ __pycache__/
 
 # LeetPush local configuration
 native-host/config.json
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
